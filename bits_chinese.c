@@ -20,8 +20,10 @@
  * 最大运算符数：7
  * 难度：1
  */
+//有x&y = ~(~x | ~y)
 int bitAnd(int x, int y) {
     return ~(~x | ~y);
+    //return 2;
 }
 
 /*
@@ -32,9 +34,9 @@ int bitAnd(int x, int y) {
  *   难度：1
  */
 int bitXor(int x, int y) {
-    /* return (x & ~y) | (~x & y); */
-    /* return ~(~(x & ~y) & ~(~x & y)); */
-    /* 意味着两个不同时，为0 */
+    //return (x & ~y) | (~x & y);
+    //return ~(~(x & ~y) & ~(~x & y));
+    //意味着两个不同时，为0
     return ~(x & y) & ~(~x & ~y);
 }
 
@@ -55,12 +57,22 @@ int bitXor(int x, int y) {
  *   如果 x 和 y 符号相同则返回 1，否则返回 0。
  */
 int samesign(int x, int y) {
-    if (!x)/* 等价于if (x == 0) */
-        return !y;
-    if (!y)
+    //return 2;
+    if(x==0 && y==0)
+    {
+        return 1;
+    }
+    if(x==0)
+    {
         return 0;
-    return !((x >> 31) ^ (y >> 31));
+    }
+    if(y==0)
+    {
+        return 0;
+    }
+    return (x>>31 )&(y>>31);
 }
+
 /*
  * logtwo - 使用位移计算正整数的以 2 为底的对数。
  *   （想一想 bitCount）
@@ -71,23 +83,28 @@ int samesign(int x, int y) {
  *   难度：4
  */
 int logtwo(int v) {
-    /* return v & (~(v - 1));坏了，这是找到最低位 */
-    /* 使用二分法，先判断高16位是否为0，如果不为0，则说明最高位在高16位，否则在低16位 */
-    /* 不允许使用 +，这里可以改成 |= */
+    //return v & (~(v - 1));坏了，这是找到最低位
+    //使用二分法，先判断高16位是否为0，如果不为0，则说明最高位在高16位，否则在低16位
+    //不允许使用 +，这里可以改成 |=
     int result = 0;
-    int shift = ((v >> 16) > 0) << 4;
-    result |= shift;
-    v >>= shift;
-    shift = ((v >> 8) > 0) << 3;
-    result |= shift;
-    v >>= shift;
-    shift = ((v >> 4) > 0) << 2;
-    result |= shift;
-    v >>= shift;
-    shift = ((v >> 2) > 0) << 1;
-    result |= shift;
-    v >>= shift;
-    return result | (v >> 1);
+    int shift = ((v>>16)>0)<<4;
+    result|=shift;
+    v=v>>shift;
+    shift = ((v>>8)>0)<<3;
+    result|=shift;
+    v=v>>shift;
+
+    shift = ((v>>4)>0)<<2;
+    result|=shift;
+    v=v>>shift;
+    shift = ((v>>2)>0)<<1;
+    result|=shift;
+    v=v>>shift;
+    shift = ((v>>1)>0);
+    result|=shift;
+    return result;
+
+    //return 2;
 }
 
 /*
@@ -100,21 +117,34 @@ int logtwo(int v) {
  *    难度：2
  */
 int byteSwap(int x, int n, int m) {
-    /* int byte_n = (x>>n*8) & 0xFF; */
-    /* n * 8 和 m * 8，用左移 3 位代替乘 8 */
-    int n_shift = n << 3;
-    int m_shift = m << 3;
+    //int byte_n = (x>>n*8) & 0xFF;
+    //但是✖️8使用了乘法运算符，所以我们可以使用位移来代替乘法
+    int byte_n = (x>>(n<<3)) & 0xFF;
+    int byte_m = (x>>(m<<3)) & 0xFF;
+    //然后要替换掉第m个字节和第n个字节，我们可以先将这两个字节清零，然后再将它们放回去
+    int mask_n =0xFF<<(n<<3);
+    int mask_m =0xFF<<(m<<3);
+    //int mask = ~(mask_n | mask_m);
+    //这里可以写成异或
+    int mask = mask_n ^ mask_m;
+    int x_cleared = x & mask;
+    //然后将byte_n和byte_m放回去
+    int result = x_cleared | (byte_n<<(m<<3)) | (byte_m<<(n<<3));
+    return result;
 
-    /* 取出第 n、m 个字节 */
-    int byte_n = (x >> n_shift) & 0xFF;
-    int byte_m = (x >> m_shift) & 0xFF;
+    //思路二：使用异或
+    /*
+    int byteSwap(int x, int n, int m) {
+    int ns = n << 3;
+    int ms = m << 3;
+    int diff = (x >> ns) ^ (x >> ms);
 
-    /* 将第 n、m 个字节清零 */
-    int mask = ~((0xFF << n_shift) | (0xFF << m_shift));
-    x = x & mask;
+    return x ^ ((diff & 0xFFu) << ns)
+             ^ ((diff & 0xFFu) << ms);
+}
+    */
 
-    /* 交换后放回原数 */
-    return x | (byte_n << m_shift) | (byte_m << n_shift);
+    //return 2;
 }
 
 /*
@@ -125,16 +155,34 @@ int byteSwap(int x, int n, int m) {
  *   最大运算符数：30
  *   难度：3
  */
+//要求：把 32 位二进制从左到右完全镜像反转
 unsigned reverse(unsigned v) {
-    /* 每次从原数 v 的最低位取出 1 个 bit，然后把它接到 result 的右边。连续做 32 次，就完成了 32 位反转。 */
+    /*
+    for(int i=0;i<16;i++)
+    {
+        //交换第i位和第31-i位
+        unsigned bit_i = (v>>i) & 1;
+        unsigned bit_31_i = (v>>(31-i)) & 1;
+        if(bit_i != bit_31_i)
+        {
+            //如果不相等，就是异或，直接翻转
+            v = v ^ (1<<i);
+            v = v ^ (1<<(31-i));
+        }
+    }*/
     unsigned result = 0;
     int remaining = 32;
+
     while (remaining) {
         result = (result << 1) | (v & 1);
         v >>= 1;
         remaining -= 1;
     }
+
     return result;
+
+
+    //return 2;
 }
 
 /*
@@ -146,12 +194,12 @@ unsigned reverse(unsigned v) {
  *   难度：3
  */
 int logicalShift(int x, int n) {
-    /* 借鉴取反的思路 */
+    //借鉴取反的思路
     int mask = ~(((1 << 31) >> n) << 1);
-    /* int mask =( 1<<(32-n)-1); */
+    //int mask =( 1<<(32-n)-1);
     x =(x>>n);
     return (x & mask);
-    /* return 2; */
+    //return 2;
 }
 
 /*
@@ -162,15 +210,14 @@ int logicalShift(int x, int n) {
  *   最大运算符数：50
  *   难度：4
  */
-int leftBitCount(int x) /* 最高位已经是1了，找第一个0 */
-{
+int leftBitCount(int x) {
     /* 负数的符号位已经是 1。取反后寻找最高的 1，
      * 就能定位原数从左往右的第一个 0。屏蔽符号位，保证右移对象非负。
      */
-    int v = ~x & 0x7FFFFFFF;/* 保证v非负 */
+    int v = ~x & 0x7FFFFFFF;
     int all_ones = !v;
     int n = 0;
-    int shift = (!!(v >> 16)) << 4;/* !!是常见的布尔化技巧 */
+    int shift = (!!(v >> 16)) << 4;
     n += shift;
     v >>= shift;
     shift = (!!(v >> 8)) << 3;
@@ -268,24 +315,17 @@ unsigned floatScale2(unsigned uf) {
  *   难度：3
  */
 int float64_f2i(unsigned uf1, unsigned uf2) {
-    int exponent = (uf2 >> 20) & 0x7FF;
-    int value;
-    unsigned high = (uf2 & 0xFFFFF) | 0x100000;
-    exponent -= 1023;
-    if (exponent < 0)
-        return 0;
-    /* INT_MIN and the overflow sentinel have the same bit pattern. */
-    if (exponent >= 31)
-        return -2147483647 - 1;
-    if (exponent <= 20)
-        value = high >> (20 - exponent);
-    else
-        value = (high << (exponent - 20)) | (uf1 >> (52 - exponent));
-    if (uf2 >> 31)
-        return -value;
-    return value;
+    //先构建一个mask
+    unsigned mask = 0x7FFFFFFF;   //0111。。。
+    //然后将uf1和uf2组合成一个64位的数
+    unsigned long long num = ((unsigned long long)uf2 << 32) | uf1;
+    //将num的符号位清零
+    num &= mask;
+    //将num转换为32位整数
+    int result = (int)num;
+    return result;
+    return 2;
 }
-
 
 /*
  * floatPower2 - 对任意 32 位整数 x，返回表达式 2.0^x
@@ -300,8 +340,7 @@ int float64_f2i(unsigned uf1, unsigned uf2) {
  *   最大运算符数：30
  *   难度：4
  */
-unsigned floatPower2(int x) /* 尾数均为0 */
-{
+unsigned floatPower2(int x) {
     /* 单精度最小正数是 2^-149，最大规格化指数是 127。 */
     if (x < -149)
         return 0;
